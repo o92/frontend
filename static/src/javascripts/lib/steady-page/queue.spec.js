@@ -23,6 +23,7 @@ describe('Queue', () => {
         queue.enqueue(FIX_2);
         expect(queue.dequeue()).toBe(FIX_1);
         expect(queue.dequeue()).toBe(FIX_2);
+        expect(queue.dequeue()).toBe(undefined);
     });
 
     test('isEmpty', () => {

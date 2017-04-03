@@ -143,11 +143,11 @@ const go = (state: Object): Promise<void> => {
         })
         .then(() => getHeightOfAllContainers(batch))
         .then(heightsAfterIns => {
-            scroll(
-                Object.assign(state, {
-                    newHeight: heightsAfterIns - batchHeightsBeforeInsert,
-                })
-            );
+            const opts = Object.assign(state, {
+                newHeight: heightsAfterIns - batchHeightsBeforeInsert,
+            });
+
+            scroll(opts);
         });
 
     return promise;

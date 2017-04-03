@@ -1,29 +1,10 @@
 // @flow
 
-import fastdom from 'lib/fastdom-promise';
 import config from 'lib/config';
+import fastdom from 'lib/fastdom-promise';
+import Queue from './queue';
 
-class Queue {
-    queue: Array<any>;
-
-    constructor(): void {
-        this.queue = [];
-    }
-
-    enqueue(item: Object): number {
-        return this.queue.push(item);
-    }
-
-    dequeue(): number {
-        return this.queue.shift();
-    }
-
-    isEmpty(): boolean {
-        return this.queue.length === 0;
-    }
-}
-
-const q = new Queue();
+const queue = new Queue();
 let isRunning = false;
 let promise;
 
@@ -100,7 +81,7 @@ const go = (state: Object): Promise<void> => {
 
     const batch = [];
     const scroll = (heights: Object): ?Promise<any> => {
-        if (q.isEmpty()) {
+        if (queue.isEmpty()) {
             /*
                 If the queue is empty (no more elements need to be added
                 to the page) we immediately scroll
@@ -132,8 +113,8 @@ const go = (state: Object): Promise<void> => {
     let batchHeightsBeforeInsert;
 
     // Take the current queue items and add them to the batch array
-    while (!q.isEmpty()) {
-        batch.push(q.dequeue());
+    while (!queue.isEmpty()) {
+        batch.push(queue.dequeue());
     }
 
     promise = getHeightOfAllContainers(batch)
@@ -168,10 +149,7 @@ const insert = (container: HTMLElement, cb: Function): Promise<void> => {
         prevHeight: 0,
     };
 
-    q.enqueue({
-        container,
-        cb,
-    });
+    queue.enqueue({ container, cb });
 
     return isRunning ? promise : go(initialState);
 };

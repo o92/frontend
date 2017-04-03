@@ -11,7 +11,7 @@ class Queue {
         return this.queue.push(item);
     }
 
-    dequeue(): number {
+    dequeue(): any {
         return this.queue.shift();
     }
 

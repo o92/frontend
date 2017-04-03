@@ -4,21 +4,21 @@ import fastdom from 'lib/fastdom-promise';
 import config from 'lib/config';
 
 class Queue {
-    queue: Array;
+    queue: Array<any>;
 
     constructor(): void {
         this.queue = [];
     }
 
-    enqueue(item) {
+    enqueue(item: Object): number {
         return this.queue.push(item);
     }
 
-    dequeue() {
+    dequeue(): number {
         return this.queue.shift();
     }
 
-    isEmpty(): Boolean {
+    isEmpty(): boolean {
         return this.queue.length === 0;
     }
 }
@@ -27,40 +27,17 @@ const q = new Queue();
 let isRunning = false;
 let promise;
 
-/**
-    Insert an element into the page
-    Use if your element doesn't exist and is inserted into a container
-    ** Don't use fastdom - it is handled in this utility **
-*/
-
-const insert = (container: HTMLElement, cb: Funciton) => {
-    if (!config.switches.steadyPageUtil) {
-        return fastdom.write(cb);
-    }
-
-    const initialState = {
-        scrollY: window.scrollY,
-        prevHeight: 0,
-    };
-
-    q.enqueue({
-        container,
-        cb,
-    });
-
-    return isRunning ? promise : go(initialState);
-};
-
 // Given a batch, call all of the callbacks on the insertion object
-const insertElements = (batch: Array): void => fastdom.write(() => {
-    batch.forEach(insertion => insertion.cb());
-});
+const insertElements = (batch: Array<any>): Promise<void> =>
+    fastdom.write(() => {
+        batch.forEach(insertion => insertion.cb());
+    });
 
 /*
     Given a batch and a previous currentBatchHeight, measure the height of
     each container in the batch
 */
-const getHeightOfAllContainers = (batch: Array) => {
+const getHeightOfAllContainers = (batch: Array<any>): Promise<number> => {
     let viewportHeight;
 
     /*
@@ -70,7 +47,7 @@ const getHeightOfAllContainers = (batch: Array) => {
           viewport is less
         - than the viewport height then we know the page will be yanked
     */
-    const elementIsAbove = (el: HTMLElement): Boolean => {
+    const elementIsAbove = (el: Object): boolean => {
         const elTopPos = el.container.getBoundingClientRect().top;
         const { offsetHeight } = el.container;
         const { scrollY } = window;
@@ -90,8 +67,14 @@ const getHeightOfAllContainers = (batch: Array) => {
     };
 
     return fastdom.read(() => {
+        const docElement = document.documentElement;
+
+        if (!docElement) {
+            return [];
+        }
+
         viewportHeight = Math.max(
-            document.documentElement.clientHeight,
+            docElement.clientHeight,
             window.innerHeight || 0
         );
 
@@ -112,8 +95,7 @@ const getHeightOfAllContainers = (batch: Array) => {
       3. Calculate the new height of the container
       4. Adjust the scroll position to account for the new container height
 */
-
-const go = (state: Object): ?Promise<any> => {
+const go = (state: Object): Promise<void> => {
     isRunning = true;
 
     const batch = [];
@@ -154,20 +136,44 @@ const go = (state: Object): ?Promise<any> => {
         batch.push(q.dequeue());
     }
 
-    promise = Promise.resolve(getHeightOfAllContainers(batch))
+    promise = getHeightOfAllContainers(batch)
         .then(heightsBeforeIns => {
             batchHeightsBeforeInsert = heightsBeforeIns || 0;
             return insertElements(batch);
         })
-        .then(() => getHeightOfAllContainers(batch).then(newHeights => {
+        .then(() => getHeightOfAllContainers(batch))
+        .then(heightsAfterIns => {
             scroll(
                 Object.assign(state, {
-                    newHeight: newHeights - batchHeightsBeforeInsert,
+                    newHeight: heightsAfterIns - batchHeightsBeforeInsert,
                 })
             );
-        }));
+        });
 
     return promise;
+};
+
+/**
+    Insert an element into the page
+    Use if your element doesn't exist and is inserted into a container
+    ** Don't use fastdom - it is handled in this utility **
+*/
+const insert = (container: HTMLElement, cb: Function): Promise<void> => {
+    if (!config.switches.steadyPageUtil) {
+        return fastdom.write(cb);
+    }
+
+    const initialState = {
+        scrollY: window.scrollY,
+        prevHeight: 0,
+    };
+
+    q.enqueue({
+        container,
+        cb,
+    });
+
+    return isRunning ? promise : go(initialState);
 };
 
 export default {

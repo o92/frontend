@@ -5,7 +5,6 @@ define([
     'lib/config',
     'lib/detect',
     'lodash/utilities/template',
-    'lib/steady-page',
     'commercial/modules/third-party-tags/outbrain-codes',
     'raw-loader!commercial/views/outbrain.html',
     'lib/load-script',
@@ -18,7 +17,6 @@ define([
     config,
     detect,
     template,
-    steadyPage,
     getCode,
     outbrainStr,
     loadScript,
@@ -73,7 +71,7 @@ define([
         widgetHtml = build(widgetCodes, breakpoint);
 
         if ($container.length) {
-            return steadyPage.insert($container[0], function() {
+            return fastdom.write(function() {
                 if (slot === 'merchandising') {
                     $(selectors[slot].widget).replaceWith($outbrain[0]);
                 }

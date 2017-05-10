@@ -135,13 +135,11 @@
     "lib/page.js",
     "lib/picturefill.js",
     "lib/proximity-loader.js",
-    "lib/queue.js",
     "projects/common/modules/video/metadata.js",
     "projects/common/modules/ui/smartAppBanner.js",
     "projects/common/modules/crosswords/anagram-helper/clue-input.js"
   ],
   "GHaberis": [
-    "lib/steady-page.js",
     "projects/common/modules/ui/sticky.js",
     "projects/admin/bootstraps/abtests.js",
     "projects/admin/bootstraps/radiator.js",

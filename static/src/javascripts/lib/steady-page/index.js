@@ -2,6 +2,7 @@
 
 import config from 'lib/config';
 import fastdom from 'lib/fastdom-promise';
+import { calculateContainerHeights } from './calculateContainerHeights';
 import Queue from './queue';
 
 const queue = new Queue();
@@ -13,61 +14,6 @@ const insertElements = (batch: Array<any>): Promise<void> =>
     fastdom.write(() => {
         batch.forEach(insertion => insertion.cb());
     });
-
-/*
-    Given a batch and a previous currentBatchHeight, measure the height of
-    each container in the batch
-*/
-const getHeightOfAllContainers = (batch: Array<any>): Promise<number> => {
-    let viewportHeight;
-
-    /*
-        If the element has height
-        - and the user has scrolled
-        - and the distance from the top of the element to the top of the
-          viewport is less
-        - than the viewport height then we know the page will be yanked
-    */
-    const elementIsAbove = (el: Object): boolean => {
-        const elTopPos = el.container.getBoundingClientRect().top;
-        const { offsetHeight } = el.container;
-        const { scrollY } = window;
-
-        return offsetHeight > -1 &&
-            scrollY > 0 &&
-            elTopPos < Math.max(viewportHeight, offsetHeight || 0);
-    };
-
-    const readHeight = (el: HTMLElement): number => {
-        const style = getComputedStyle(el);
-        const height = el.offsetHeight +
-            parseInt(style.marginTop, 10) +
-            parseInt(style.marginBottom, 10);
-
-        return isNaN(height) ? 0 : height;
-    };
-
-    return fastdom.read(() => {
-        const docElement = document.documentElement;
-
-        if (!docElement) {
-            return [];
-        }
-
-        viewportHeight = Math.max(
-            docElement.clientHeight,
-            window.innerHeight || 0
-        );
-
-        // Add all the heights of the passed in batch removing the current height
-        return batch
-            .filter(elementIsAbove)
-            .reduce(
-                (height, insertion) => height + readHeight(insertion.container),
-                0
-            );
-    });
-};
 
 /*
     Process the insertion operation:
@@ -100,6 +46,7 @@ const go = (state: Object): Promise<void> => {
                 the function so that we only scroll the page once the queue
                 is empty - this prevents excessive and jarring scrolling
             */
+
             return go(
                 Object.assign(heights, {
                     prevHeight: state.prevHeight + state.newHeight,
@@ -117,18 +64,18 @@ const go = (state: Object): Promise<void> => {
         batch.push(queue.dequeue());
     }
 
-    promise = getHeightOfAllContainers(batch)
+    promise = calculateContainerHeights(batch)
         .then(heightsBeforeIns => {
             batchHeightsBeforeInsert = heightsBeforeIns || 0;
             return insertElements(batch);
         })
-        .then(() => getHeightOfAllContainers(batch))
+        .then(() => calculateContainerHeights(batch))
         .then(heightsAfterIns => {
             const opts = Object.assign(state, {
                 newHeight: heightsAfterIns - batchHeightsBeforeInsert,
             });
 
-            scroll(opts);
+            return scroll(opts);
         });
 
     return promise;
@@ -154,10 +101,4 @@ const insert = (container: HTMLElement, cb: Function): Promise<void> => {
     return isRunning ? promise : go(initialState);
 };
 
-export default {
-    insert,
-    _tests: {
-        getHeightOfAllContainers,
-        insertElements,
-    },
-};
+export { insert };

@@ -13,7 +13,7 @@ define([
 ) {
 
     var URLS = {
-        suggestions: 'https://tailor.guardianapis.com/suggestions?browserId='
+        surveys: 'https://tailor.guardianapis.com/surveys?browserId='
     };
 
     var browserId = cookies.getCookie('bwid');
@@ -43,6 +43,7 @@ define([
      **/
     function fetchData(type, bypassStorage, queryParams) {
         var url = getURL(type, queryParams);
+        // console.log(url)
 
         // exit if no valid url end point, or tailor switch is off
         if (!url || !config.switches.useTailorEndpoints) {

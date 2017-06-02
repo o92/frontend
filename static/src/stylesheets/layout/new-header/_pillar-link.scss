@@ -21,6 +21,10 @@
         font-size: 28px;
     }
 
+    @include mq(desktop) {
+        font-size: 32px;
+    }
+
     &:focus,
     &:hover {
         text-decoration: none;
